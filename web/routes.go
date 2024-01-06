@@ -5,8 +5,10 @@ import (
 	"html/template"
 	"net/http"
 
+	"goshrest/internal"
 	"goshrest/internal/common"
 
+	_ "github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/oauth2"
 	goauth2 "google.golang.org/api/oauth2/v2"
@@ -16,11 +18,15 @@ import (
 const oAuthStateKey = "oauth_state"
 
 type WebRoutes struct {
+	signIn     internal.SignInUserStory
 	oAuth2Conf *oauth2.Config
 }
 
-func NewWebRoutes(oAuth2Conf *oauth2.Config) *WebRoutes {
+func NewWebRoutes(signIn internal.SignInUserStory,
+	oAuth2Conf *oauth2.Config,
+) *WebRoutes {
 	return &WebRoutes{
+		signIn:     signIn,
 		oAuth2Conf: oAuth2Conf,
 	}
 }
@@ -102,6 +108,15 @@ func (r *WebRoutes) gAuthCallbackRoute() common.Router {
 			if err != nil {
 				panic(err)
 			}
+
+			r.signIn.SignIn(req.Context(), internal.SignInUserParams{
+				GoogleID:     ui.Id,
+				Name:         ui.Name,
+				Email:        ui.Email,
+				AccessToken:  token.AccessToken,
+				RefreshToken: token.RefreshToken,
+				Expiry:       token.Expiry,
+			})
 
 			fmt.Println(ui)
 
